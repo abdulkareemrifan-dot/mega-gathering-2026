@@ -1,0 +1,10 @@
+{
+  "name": "mega-youth-family-gathering-2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Poster, registration form and admin panel – Sri Lankan Community Jeddah",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
