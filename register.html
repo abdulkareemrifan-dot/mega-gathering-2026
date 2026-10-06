@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register – Mega Youth & Family Gathering 2026</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar"><div class="in">
+  <a class="brand" href="/">MYFG <b>2026</b></a>
+  <nav><a href="/">Poster</a><a class="on" href="/register">Register</a><a href="/check">Check Registration</a></nav>
+</div></header>
+<div class="stripe"></div>
+
+<main class="wrap narrow">
+  <section id="formView">
+    <h1 class="page" id="evTitle">Registration</h1>
+    <p class="lead" id="evMeta">Loading event details…</p>
+    <div id="closedMsg" class="err hidden" style="margin-bottom:16px"></div>
+    <div id="waitMsg" class="note hidden" style="margin-bottom:16px"></div>
+
+    <form id="regForm" novalidate>
+      <div class="card">
+        <h3>1 · Main participant</h3>
+        <div class="grid">
+          <div class="field full"><label for="mainName">Full name *</label><input id="mainName" maxlength="120" autocomplete="name" required></div>
+          <div class="field"><label for="nationality">Nationality *</label><select id="nationality" required><option value="">Select</option></select></div>
+          <div class="field"><label for="gender">Gender *</label><select id="gender" required><option value="">Select</option><option>Male</option><option>Female</option></select></div>
+          <div class="field"><label for="ageGroup">Age group *</label><select id="ageGroup" required></select></div>
+          <div class="field"><label for="mobile">Mobile number *</label><input id="mobile" type="tel" inputmode="numeric" maxlength="10" placeholder="05XXXXXXXX" autocomplete="tel" required><small>10 digits, starting with 0. One registration per mobile number.</small></div>
+          <div class="field full"><label for="email">Email (optional)</label><input id="email" type="email" autocomplete="email" placeholder="name@example.com"></div>
+          <input class="hp" id="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
+          <h3 style="margin:0">2 · Family members attending</h3>
+          <button class="btn btn-ghost btn-sm" type="button" id="addBtn">+ Add person</button>
+        </div>
+        <p class="small muted" style="margin:6px 0 0">Add everyone else coming with you (spouse, children, parents…). The main participant is person 1.</p>
+        <div id="rows"></div>
+      </div>
+
+      <div class="card">
+        <h3>3 · Payment</h3>
+        <div class="sum"><div><div class="small" style="opacity:.8">Total participants: <b id="sumCount">1</b></div><div id="sumBreak" class="small" style="opacity:.8"></div></div><strong id="sumTotal">SAR 0</strong></div>
+        <p class="note" style="margin-top:12px" id="payNote"></p>
+        <label class="check"><input id="cash" type="checkbox"> I confirm that I will pay the total amount in cash.</label>
+        <div id="formErr" class="err hidden" style="margin-top:12px"></div>
+        <div class="actions"><button class="btn btn-accent" id="submitBtn" type="submit">Submit Registration →</button></div>
+      </div>
+    </form>
+  </section>
+
+  <section id="doneView" class="hidden">
+    <h1 class="page">🎉 You're registered!</h1>
+    <p class="lead">Save this ticket (screenshot or print). Show it at the entrance after payment is confirmed.</p>
+    <div id="ticket"></div>
+    <div class="actions no-print" style="justify-content:center">
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+      <button class="btn btn-accent" id="waBtn">📤 Share on WhatsApp</button>
+      <a class="btn btn-ghost" id="groupBtn" target="_blank" rel="noopener" style="display:none">💬 Join WhatsApp Group</a>
+      <a class="btn btn-ghost" href="/check">Check status later</a>
+    </div>
+  </section>
+</main>
+<footer class="site">Sri Lankan Community – Jeddah</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/ticket.js"></script>
+<script>
+let S = null;
+
+function ageOptions(sel) {
+  return '<option value="">Age group</option>' + AGE_GROUPS.map(g => '<option value="' + g + '"' + (sel === g ? ' selected' : '') + '>' + g + ' (' + AGE_HINT[g] + ')' +
+    (S && S.fees[g] ? ' – ' + money(S.fees[g]) : ' – Free') + '</option>').join('');
+}
+
+function addRow() {
+  const div = document.createElement('div');
+  div.className = 'p-row';
+  div.innerHTML = '<span class="n"></span>' +
+    '<input class="pn" placeholder="Name (optional)" maxlength="120">' +
+    '<select class="rel"><option value="">Relation</option>' + RELATIONS.map(r => '<option>' + r + '</option>').join('') + '</select>' +
+    '<select class="gen"><option value="">Gender</option><option>Male</option><option>Female</option></select>' +
+    '<select class="age">' + ageOptions() + '</select>' +
+    '<button type="button" class="x" title="Remove">✕</button>';
+  div.querySelector('.x').onclick = () => { div.remove(); refresh(); };
+  div.querySelectorAll('select').forEach(s => s.onchange = refresh);
+  $('#rows').appendChild(div);
+  refresh();
+  div.querySelector('.pn').focus();
+}
+
+function people() {
+  return Array.from(document.querySelectorAll('#rows .p-row')).map(r => ({
+    name: r.querySelector('.pn').value.trim(), relation: r.querySelector('.rel').value,
+    gender: r.querySelector('.gen').value, ageGroup: r.querySelector('.age').value
+  }));
+}
+
+function refresh() {
+  document.querySelectorAll('#rows .p-row .n').forEach((n, i) => n.textContent = i + 2);
+  if (!S) return;
+  const all = [$('#ageGroup').value].concat(people().map(p => p.ageGroup));
+  const counts = {}; let total = 0;
+  all.forEach(g => { if (g) { counts[g] = (counts[g] || 0) + 1; total += Number(S.fees[g] || 0); } });
+  $('#sumCount').textContent = all.length;
+  $('#sumBreak').textContent = Object.keys(counts).map(g => counts[g] + ' × ' + g).join(' · ');
+  $('#sumTotal').textContent = money(total);
+}
+
+function validate(d) {
+  if (d.mainName.length < 2) return 'Please enter the main participant name.';
+  if (!d.nationality) return 'Please select nationality.';
+  if (!d.gender) return 'Please select gender.';
+  if (!d.ageGroup) return 'Please select the age group.';
+  if (!/^0\d{9}$/.test(d.mobile)) return 'Mobile number must be 10 digits and start with 0.';
+  if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return 'Please enter a valid email address.';
+  for (let i = 0; i < d.participants.length; i++) {
+    const p = d.participants[i];
+    if (!p.relation || !p.gender || !p.ageGroup) return 'Please complete relation, gender and age group for person ' + (i + 2) + '.';
+  }
+  if (!d.cashConfirmed) return 'Please tick the cash payment confirmation.';
+  return '';
+}
+
+$('#addBtn').onclick = addRow;
+$('#ageGroup').onchange = refresh;
+$('#mobile').oninput = e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10); };
+
+$('#regForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const d = {
+    mainName: $('#mainName').value.trim(), nationality: $('#nationality').value, gender: $('#gender').value,
+    ageGroup: $('#ageGroup').value, mobile: $('#mobile').value.trim(), email: $('#email').value.trim(),
+    participants: people(), cashConfirmed: $('#cash').checked, website: $('#website').value
+  };
+  const errBox = $('#formErr');
+  const err = validate(d);
+  if (err) { errBox.textContent = err; errBox.classList.remove('hidden'); toast(err, 'error'); return; }
+  errBox.classList.add('hidden');
+  const btn = $('#submitBtn');
+  busy(btn, true, 'Submitting…');
+  try {
+    const res = await api('/api/register', d);
+    showTicket(res.registration);
+  } catch (ex) {
+    errBox.textContent = ex.message; errBox.classList.remove('hidden'); toast(ex.message, 'error');
+  } finally { busy(btn, false); }
+};
+
+function showTicket(r) {
+  $('#formView').classList.add('hidden');
+  $('#doneView').classList.remove('hidden');
+  $('#ticket').innerHTML = ticketHtml(r, S);
+  $('#waBtn').onclick = () => shareTicket(r, S);
+  if (S.whatsappGroupLink) { const g = $('#groupBtn'); g.href = S.whatsappGroupLink; g.style.display = ''; }
+  window.scrollTo(0, 0);
+}
+
+(async function init() {
+  try {
+    const data = await api('/api/settings');
+    S = data.settings;
+    document.title = 'Register – ' + S.titleTop + ' ' + S.titleMain;
+    $('#evTitle').textContent = S.titleTop + ' ' + S.titleMain;
+    $('#evMeta').textContent = '📅 ' + S.date + '  ·  ⏰ ' + S.time + '  ·  📍 ' + S.venue;
+    $('#nationality').innerHTML = '<option value="">Select</option>' + S.nationalities.map(n => '<option>' + esc(n) + '</option>').join('');
+    $('#ageGroup').innerHTML = ageOptions();
+    $('#payNote').textContent = S.paymentNote;
+    if (!S.registrationOpen) {
+      $('#closedMsg').textContent = 'Registration is currently closed. Please contact the organisers.';
+      $('#closedMsg').classList.remove('hidden');
+      $('#regForm').classList.add('hidden');
+    } else if (data.availability.available <= 0) {
+      $('#waitMsg').innerHTML = '<b>All seats are currently taken.</b> You can still register – you will be placed on the waiting list and moved up automatically if seats free up.';
+      $('#waitMsg').classList.remove('hidden');
+    }
+    refresh();
+  } catch (e) {
+    $('#evMeta').innerHTML = '<span class="err" style="display:block">Could not load event details: ' + esc(e.message) + '</span>';
+  }
+})();
+</script>
+</body>
+</html>

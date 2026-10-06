@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mega Youth & Family Gathering 2026 – Sri Lankan Community Jeddah</title>
+<meta name="description" content="Register now for the Mega Youth & Family Gathering 2026 – Sri Lankan Community, Jeddah.">
+<meta property="og:title" content="Mega Youth & Family Gathering 2026">
+<meta property="og:description" content="Limited seats – first come, first served. Register now!">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/poster.css">
+<link rel="stylesheet" href="/css/poster-classic.css">
+<style>
+  .hero{display:grid; grid-template-columns:minmax(0,560px) 1fr; gap:28px; align-items:start}
+  .side h2{font-family:'Anton',sans-serif; font-weight:400; font-size:30px; color:var(--navy); margin:0 0 8px; letter-spacing:.02em}
+  .fees{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-top:10px}
+  .fees div{background:#F7F9FD; border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center}
+  .fees span{display:block; font-size:12px; color:var(--muted); font-weight:700}
+  .fees strong{color:var(--navy)}
+  @media (max-width:900px){ .hero{grid-template-columns:1fr} .fees{grid-template-columns:repeat(3,1fr)} }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="in">
+  <a class="brand" href="/">MYFG <b>2026</b></a>
+  <nav><a class="on" href="/">Poster</a><a href="/register">Register</a><a href="/check">Check Registration</a></nav>
+</div></header>
+<div class="stripe"></div>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <div id="poster" class="poster"></div>
+      <div class="actions no-print">
+        <a class="btn btn-accent" id="regBtn" href="/register">🎟️ Register Now</a>
+        <button class="btn btn-ghost" id="dlBtn" type="button">⬇ Download Poster (PNG)</button>
+        <button class="btn btn-ghost" id="shareBtn" type="button">📤 Share on WhatsApp</button>
+      </div>
+    </div>
+    <aside class="side">
+      <div class="card">
+        <h2>Register your family</h2>
+        <p class="muted" id="sideText">Seats are limited and allocated first come, first served. Register the main participant and add every family member who will attend.</p>
+        <div class="stats" style="grid-template-columns:1fr 1fr">
+          <div class="stat"><span>Seats left</span><strong id="seatsLeft">–</strong></div>
+          <div class="stat"><span>Payment</span><strong>Cash</strong></div>
+        </div>
+        <h3 style="margin-top:18px">Entry fee per person</h3>
+        <div class="fees" id="fees"></div>
+        <div class="actions"><a class="btn btn-accent" href="/register">Register Now →</a><a class="btn btn-ghost" href="/check">Check my registration</a></div>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer class="site">Sri Lankan Community – Jeddah · <a href="/admin">Organiser login</a></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="/js/common.js"></script>
+<script>
+(async function () {
+  const el = $('#poster');
+  let data;
+  try { data = await api('/api/settings'); }
+  catch (e) { el.innerHTML = '<div class="err" style="margin:20px">Could not load event details: ' + esc(e.message) + '</div>'; return; }
+  const s = data.settings, a = data.availability;
+  renderPoster(el, s, a);
+  $('#seatsLeft').textContent = s.registrationOpen ? a.available : 'Closed';
+  $('#fees').innerHTML = AGE_GROUPS.map(g => '<div><span>' + g + '</span><small class="muted">' + AGE_HINT[g] + '</small><br><strong>' +
+    (s.fees[g] ? money(s.fees[g]) : 'Free') + '</strong></div>').join('');
+  if (!s.registrationOpen) { $('#sideText').textContent = 'Registration is currently closed.'; }
+  $('#dlBtn').onclick = async (e) => { busy(e.currentTarget, true, 'Preparing…'); try { await downloadPoster(el); } finally { busy(e.currentTarget, false); } };
+  $('#shareBtn').onclick = () => {
+    const text = s.titleTop + ' ' + s.titleMain + '\n📅 ' + s.date + '\n⏰ ' + s.time + '\n📍 ' + s.venue + '\n\n' + s.seatsLine + ' – ' + s.seatsSub + '\n🔗 Register: ' + registerUrl(s);
+    window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  };
+})();
+</script>
+</body>
+</html>

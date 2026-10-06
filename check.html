@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check Registration – Mega Youth & Family Gathering 2026</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar"><div class="in">
+  <a class="brand" href="/">MYFG <b>2026</b></a>
+  <nav><a href="/">Poster</a><a href="/register">Register</a><a class="on" href="/check">Check Registration</a></nav>
+</div></header>
+<div class="stripe"></div>
+
+<main class="wrap narrow">
+  <h1 class="page">Check your registration</h1>
+  <p class="lead">Enter your Registration ID (e.g. MYG26-00001) or the mobile number you registered with.</p>
+  <div class="card no-print">
+    <form id="f" class="grid" style="grid-template-columns:1fr auto; align-items:end">
+      <div class="field"><label for="q">Registration ID or mobile</label><input id="q" placeholder="MYG26-00001 or 05XXXXXXXX" autocomplete="off"></div>
+      <button class="btn btn-primary" id="go">Search</button>
+    </form>
+  </div>
+  <div id="out"></div>
+  <div class="actions no-print hidden" id="acts" style="justify-content:center">
+    <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+    <button class="btn btn-accent" id="waBtn">📤 Share on WhatsApp</button>
+  </div>
+</main>
+<footer class="site">Sri Lankan Community – Jeddah</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="/js/common.js"></script>
+<script src="/js/ticket.js"></script>
+<script>
+let S = null;
+api('/api/settings').then(d => S = d.settings).catch(() => {});
+
+async function search(q) {
+  const btn = $('#go'); busy(btn, true, 'Searching…');
+  $('#acts').classList.add('hidden');
+  try {
+    const [res] = await Promise.all([api('/api/lookup', { query: q }), S ? null : api('/api/settings').then(d => S = d.settings)]);
+    $('#out').innerHTML = ticketHtml(res.registration, S);
+    $('#acts').classList.remove('hidden');
+    $('#waBtn').onclick = () => shareTicket(res.registration, S);
+  } catch (e) {
+    $('#out').innerHTML = '<div class="err">' + esc(e.message) + '</div>';
+  } finally { busy(btn, false); }
+}
+
+$('#f').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if (q) search(q); };
+const pre = new URLSearchParams(location.search).get('id');
+if (pre) { $('#q').value = pre; search(pre); }
+</script>
+</body>
+</html>

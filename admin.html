@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin – MYFG 2026</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/poster.css">
+<link rel="stylesheet" href="/css/poster-classic.css">
+<style>
+  .wrap{max-width:1240px}
+  .editor{display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:20px; align-items:start}
+  .editor .preview{position:sticky; top:12px}
+  .fset{border:1px solid var(--border); border-radius:14px; padding:16px; margin:0 0 14px}
+  .fset legend{font-weight:800; color:var(--navy); padding:0 6px}
+  .switch{display:flex; align-items:center; gap:10px; font-weight:700}
+  .switch input{width:20px; height:20px; accent-color:var(--navy2)}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px}
+  .toolbar input,.toolbar select{padding:10px 12px; border:1.5px solid var(--border); border-radius:10px; font:inherit; background:#fff}
+  .toolbar input{flex:1; min-width:200px}
+  td .sel{padding:6px 8px; border:1px solid var(--border); border-radius:8px; font:inherit; font-size:12.5px}
+  tr.detail td{background:#FBFCFE}
+  .scan-video{width:100%; max-width:420px; aspect-ratio:1; object-fit:cover; border-radius:16px; background:#000; display:block; margin:0 auto}
+  .result{margin-top:14px; padding:18px; border-radius:16px; text-align:center}
+  .result.ok{background:#DCFAE6; color:#085D3A} .result.bad{background:#FEE4E2; color:#B42318} .result.warn{background:#FFF1DE; color:#93370D}
+  .result .big{font-family:'Anton',sans-serif; font-size:30px; letter-spacing:.03em}
+  @media (max-width:1000px){ .editor{grid-template-columns:1fr} .editor .preview{position:static; max-width:480px} }
+</style>
+</head>
+<body>
+<header class="topbar"><div class="in">
+  <a class="brand" href="/">MYFG <b>2026</b> · Admin</a>
+  <nav><a href="/" target="_blank">View poster ↗</a><a href="#" id="logoutBtn" class="hidden">Log out</a></nav>
+</div></header>
+<div class="stripe"></div>
+
+<main class="wrap">
+  <!-- Login -->
+  <section id="loginView" class="card" style="max-width:420px; margin:40px auto">
+    <h2>🔐 Organiser login</h2>
+    <form id="loginForm">
+      <div class="field"><label for="pin">Admin PIN</label><input id="pin" type="password" inputmode="numeric" autocomplete="current-password" autofocus></div>
+      <div class="actions"><button class="btn btn-primary" id="loginBtn">Log in</button></div>
+    </form>
+  </section>
+
+  <!-- Dashboard -->
+  <section id="appView" class="hidden">
+    <div class="stats card" id="stats" style="grid-template-columns:repeat(6,minmax(0,1fr))"></div>
+    <div class="tabs" id="tabs">
+      <button data-tab="regs" class="on">📋 Registrations</button>
+      <button data-tab="event">🎨 Event & Poster</button>
+      <button data-tab="scan">🎫 Entry Check-in</button>
+      <button data-tab="sec">🔐 Security & Log</button>
+    </div>
+
+    <!-- Registrations -->
+    <div data-pane="regs" class="card">
+      <div class="toolbar">
+        <input id="search" placeholder="Search ID, name, mobile or email…">
+        <select id="filter">
+          <option value="">All</option><option value="Payment Pending">Payment pending</option><option value="Paid">Paid</option>
+          <option value="Waiting">Waiting list</option><option value="Cancelled">Cancelled</option><option value="checked">Checked in</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="refreshBtn">↻ Refresh</button>
+        <button class="btn btn-ghost btn-sm" id="csvBtn">⬇ Export CSV (Excel)</button>
+      </div>
+      <div class="small muted" id="countLine" style="margin-bottom:8px"></div>
+      <div class="table-wrap"><table class="t">
+        <thead><tr><th>ID</th><th>Main participant</th><th>People</th><th>Amount</th><th>Payment</th><th>Status</th><th>Checked in</th><th></th></tr></thead>
+        <tbody id="regBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- Event & Poster editor -->
+    <div data-pane="event" class="hidden">
+      <div class="editor">
+        <form id="evForm" class="card">
+          <h3>Edit poster & event details</h3>
+          <p class="small muted" style="margin-top:-6px">Changes appear in the preview instantly. Click <b>Save</b> to publish them to the live poster and registration form.</p>
+          <fieldset class="fset"><legend>Poster design</legend><div class="grid">
+            <div class="field full"><label>Style</label><select name="posterStyle">
+              <option value="image">My own poster image (upload)</option>
+              <option value="classic">Built-in design – light, 3 programme columns</option>
+              <option value="modern">Built-in design – dark</option></select></div>
+            <div class="field full" data-for="image">
+              <label>Poster image</label>
+              <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap">
+                <img id="posterThumb" alt="" style="width:72px; height:112px; object-fit:cover; border-radius:8px; border:1px solid var(--border); background:#F7F9FD">
+                <div style="flex:1; min-width:220px">
+                  <label class="btn btn-primary btn-sm" style="display:inline-flex; color:#fff; margin:0">📤 Upload poster image<input type="file" id="posterFile" accept="image/jpeg,image/png,image/webp" hidden></label>
+                  <div class="small muted" id="posterFileInfo" style="margin-top:6px">JPG or PNG. Best size: 1080×1920 (phone/status) or 1080×1350.</div>
+                </div>
+              </div>
+              <input type="hidden" name="posterImageUrl">
+            </div>
+            <div class="field full" data-for="image"><label>Where to put the QR code & Register button</label><select name="qrPosition">
+              <option value="band">In a bar under the poster (recommended – never covers your design)</option>
+              <option value="bottom-right">On the poster – bottom right corner</option>
+              <option value="bottom-left">On the poster – bottom left corner</option>
+              <option value="top-right">On the poster – top right corner</option></select></div>
+          </div></fieldset>
+          <fieldset class="fset"><legend>Headline</legend><div class="grid">
+            <div class="field full"><label>Community line</label><input name="community"></div>
+            <div class="field"><label>Title – line 1</label><input name="titleTop"></div>
+            <div class="field"><label>Title – line 2 (big)</label><input name="titleMain"></div>
+            <div class="field full"><label>Tagline</label><input name="tagline"></div>
+          </div></fieldset>
+          <fieldset class="fset"><legend>When & where</legend><div class="grid">
+            <div class="field"><label>Date</label><input name="date"></div>
+            <div class="field"><label>Time</label><input name="time"></div>
+            <div class="field full"><label>Venue</label><input name="venue"></div>
+          </div></fieldset>
+          <fieldset class="fset" data-for="classic"><legend>Programme columns (Classic)</legend>
+            <div class="grid3" id="secFields"></div>
+            <div class="grid" style="margin-top:12px">
+              <div class="field"><label>Food band title</label><input name="foodTitle"></div>
+              <div class="field"><label>Food icons</label><input name="foodIcons"></div>
+              <div class="field"><label>Aim title</label><input name="aimTitle"></div>
+              <div class="field full"><label>Aim text</label><textarea name="aimText" style="min-height:80px"></textarea></div>
+            </div>
+          </fieldset>
+          <fieldset class="fset" data-for="modern"><legend>Programme highlights (Modern)</legend>
+            <div class="field"><label>Section title</label><input name="activitiesTitle"></div>
+            <div class="field" style="margin-top:12px"><label>One item per line (start with an emoji)</label><textarea name="activities" rows="15" style="min-height:300px"></textarea>
+            <small>Up to 24 lines. 15 fit best on the poster.</small></div>
+          </fieldset>
+          <fieldset class="fset"><legend>Registration box</legend><div class="grid">
+            <div class="field"><label>Seats line</label><input name="seatsLine"></div>
+            <div class="field" data-for="modern"><label>Sub line</label><input name="seatsSub"></div>
+            <div class="field full" data-for="classic"><label>Seats note</label><input name="seatsNote"></div>
+            <div class="field full" data-for="classic"><label>Link label</label><input name="linkLabel"></div>
+            <div class="field full" data-for="classic"><label>Warning line</label><input name="warningLine"></div>
+            <div class="field"><label>Button text</label><input name="buttonText"></div>
+            <div class="field"><label>QR caption</label><input name="qrCaption"></div>
+            <div class="field full"><label>Registration link (optional)</label><input name="registerUrl" placeholder="Leave blank to use this website's /register page automatically"><small>Used by the button and the QR code. Set this only if you use a custom domain or short link.</small></div>
+            <div class="field"><label>Bottom motto</label><input name="motto"></div>
+            <div class="field"><label>Contact line (optional)</label><input name="contactLine" placeholder="Info: 05XXXXXXXX"></div>
+            <div class="field full"><label class="switch"><input type="checkbox" name="showSeatsLeft"> Show live “seats left” on poster</label></div>
+          </div></fieldset>
+          <fieldset class="fset"><legend>Seats, fees & form</legend><div class="grid">
+            <div class="field"><label>Total seats</label><input name="totalSeats" type="number" min="0"></div>
+            <div class="field"><label class="switch" style="margin-top:30px"><input type="checkbox" name="registrationOpen"> Registration open</label></div>
+          </div>
+          <div class="grid3" style="margin-top:12px" id="feeFields"></div>
+          <div class="grid" style="margin-top:12px">
+            <div class="field"><label>Nationality options (one per line)</label><textarea name="nationalities" rows="4" style="min-height:100px"></textarea></div>
+            <div class="field"><label>Payment note on the form</label><textarea name="paymentNote" rows="4" style="min-height:100px"></textarea></div>
+            <div class="field full"><label>WhatsApp group link (shown after registering)</label><input name="whatsappGroupLink" placeholder="https://chat.whatsapp.com/…"></div>
+          </div></fieldset>
+          <div class="actions" style="position:sticky; bottom:0; background:#fff; padding:12px 0 4px">
+            <button class="btn btn-accent" id="saveEv">💾 Save & publish</button>
+            <button class="btn btn-ghost" type="button" id="dlPoster">⬇ Download poster PNG</button>
+            <button class="btn btn-ghost" type="button" id="resetEv">Undo unsaved changes</button>
+          </div>
+        </form>
+        <div class="preview"><div class="small muted" style="margin-bottom:6px; font-weight:700">LIVE PREVIEW</div><div id="pv" class="poster"></div></div>
+      </div>
+    </div>
+
+    <!-- Scanner -->
+    <div data-pane="scan" class="card hidden" style="max-width:640px; margin:0 auto">
+      <h3>🎫 Entry check-in</h3>
+      <p class="small muted">Scan the QR code on the guest's ticket, or type the Registration ID. Only <b>Paid</b> tickets can be checked in.</p>
+      <div id="camBox"></div>
+      <div class="actions" style="justify-content:center">
+        <button class="btn btn-primary" id="camStart">📷 Start camera</button>
+        <button class="btn btn-ghost hidden" id="camStop">Stop camera</button>
+      </div>
+      <form id="manualForm" class="grid" style="grid-template-columns:1fr auto; align-items:end; margin-top:14px">
+        <div class="field"><label>Registration ID</label><input id="manualId" placeholder="MYG26-00001" style="text-transform:uppercase"></div>
+        <button class="btn btn-green">Check in</button>
+      </form>
+      <div id="scanResult"></div>
+    </div>
+
+    <!-- Security -->
+    <div data-pane="sec" class="hidden">
+      <div class="card" style="max-width:640px">
+        <h3>Change admin PIN</h3>
+        <form id="pinForm" class="grid">
+          <div class="field"><label>Current PIN</label><input id="pinCur" type="password" inputmode="numeric" autocomplete="current-password"></div>
+          <div class="field"><label>New PIN (6–12 digits)</label><input id="pinNew" type="password" inputmode="numeric" autocomplete="new-password"></div>
+          <div class="field"><label>Confirm new PIN</label><input id="pinNew2" type="password" inputmode="numeric" autocomplete="new-password"></div>
+          <div class="field" style="align-self:end"><button class="btn btn-primary">Change PIN</button></div>
+        </form>
+      </div>
+      <div class="card"><h3>Activity log</h3><div class="table-wrap"><table class="t"><thead><tr><th>Date</th><th>By</th><th>Action</th><th>Details</th></tr></thead><tbody id="logBody"></tbody></table></div></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<script src="/js/common.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
